@@ -15,7 +15,12 @@ async function api(path, options = {}) {
   const response = await fetch(path, options);
   const contentType = response.headers.get("content-type") || "";
   const result = contentType.includes("application/json") ? await response.json() : await response.text();
-  if (!response.ok) throw new Error(result.error || result || "Something went wrong");
+  if (!response.ok) {
+    if (response.status === 401 && !path.startsWith("/api/auth/")) renderLogin("Your session ended. Enter your password to continue.");
+    const error = new Error(result.error || result || "Something went wrong");
+    error.status = response.status;
+    throw error;
+  }
   return result;
 }
 
@@ -32,6 +37,21 @@ async function refresh(message) {
   if (message) notify(message);
 }
 
+function renderLogin(message = "") {
+  state = null;
+  app.innerHTML = `<main class="login-page"><section class="login-card">
+    <span class="login-mark" aria-hidden="true">M</span>
+    <p class="eyebrow">Private CPD record</p>
+    <h1>Welcome back.</h1>
+    <p class="login-copy">Enter your CPD Manager password to open your activities, evidence and audit workspace.</p>
+    ${message ? `<p class="login-message">${escapeHtml(message)}</p>` : ""}
+    <form id="login-form">
+      <label>Password<input type="password" name="password" required minlength="12" autocomplete="current-password" autofocus /></label>
+      <button class="primary-action plain" type="submit">Unlock CPD Manager</button>
+    </form>
+  </section></main>`;
+}
+
 function shell(content) {
   const route = currentRoute();
   const start = state.settings.bienniumStart;
@@ -42,7 +62,7 @@ function shell(content) {
           <span class="brand-mark" aria-hidden="true">M</span>
           <span><strong>CPD Manager</strong><small>${state.settings.fullName ? escapeHtml(state.settings.fullName) : "Private practice log"}</small></span>
         </a>
-        <span class="cycle-pill">${start}—${start + 1}</span>
+        <div class="topbar-actions"><span class="cycle-pill">${start}—${start + 1}</span><button class="lock-button" data-action="logout" type="button">Lock</button></div>
       </header>
       <main>${content}</main>
       <nav class="bottom-nav" aria-label="Primary navigation">
@@ -275,6 +295,10 @@ app.addEventListener("click", async (event) => {
     if (action === "new-reflection") openReflectionDialog();
     if (action === "edit-reflection") openReflectionDialog(id);
     if (action === "close-dialog") control.closest("dialog").close();
+    if (action === "logout") {
+      await api("/api/auth/logout", { method: "POST" });
+      renderLogin("CPD Manager is locked.");
+    }
     if (action === "delete-activity" && confirm("Delete this activity, its evidence and linked reflections?")) {
       await api(`/api/activities/${id}`, { method: "DELETE" }); await refresh("Activity deleted");
     }
@@ -295,6 +319,11 @@ app.addEventListener("submit", async (event) => {
   const form = event.target;
   const formId = form.getAttribute("id");
   try {
+    if (formId === "login-form") {
+      const password = new FormData(form).get("password");
+      await api("/api/auth/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ password }) });
+      await refresh("CPD Manager unlocked");
+    }
     if (formId === "activity-form") {
       const data = new FormData(form);
       const id = data.get("recordId");
@@ -336,4 +365,4 @@ app.addEventListener("change", async (event) => {
 });
 
 window.addEventListener("hashchange", render);
-refresh().catch((error) => { app.innerHTML = `<section class="fatal-error"><h1>Couldn’t open the CPD log</h1><p>${escapeHtml(error.message)}</p><button onclick="location.reload()">Try again</button></section>`; });
+api("/api/auth/status").then((auth) => auth.authenticated ? refresh() : renderLogin()).catch((error) => { app.innerHTML = `<section class="fatal-error"><h1>Couldn’t open the CPD log</h1><p>${escapeHtml(error.message)}</p><button onclick="location.reload()">Try again</button></section>`; });

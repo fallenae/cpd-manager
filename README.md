@@ -20,6 +20,8 @@ The ZIP is for safekeeping. Extract it and upload its contents to the MRTB porta
 docker compose up -d --build
 ```
 
+Before starting, copy `.env.example` to `.env` and replace the example value with a unique password of at least 12 characters. The `.env` file is ignored by Git and must not be published.
+
 Open `http://localhost:8787`.
 
 All persistent information is under `./data`:
@@ -31,7 +33,7 @@ Back up the entire `data` directory together. Stop the container while taking a 
 
 ## Private access
 
-The app has no user accounts because it is intended for one person on a trusted network. Do not expose port 8787 directly to the public internet. For remote phone access, put it behind a private VPN or an authenticated reverse proxy.
+The app has a single password supplied through the `CPD_PASSWORD` environment variable. Successful logins receive an HTTP-only, same-site session cookie lasting 12 hours; restarting the container signs out all browsers. Do not expose port 8787 directly through your router. For remote phone access, put it behind a private VPN or an authenticated reverse proxy such as Cloudflare Access for an additional layer of protection.
 
 ## Local development
 

@@ -4,3 +4,6 @@ data/*
 data/files/*
 !data/files/.gitkeep
 *.log
+.env
+.env.*
+!.env.example

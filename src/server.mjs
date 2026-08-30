@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { createHash, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { extname, isAbsolute, join, normalize, relative, resolve } from "node:path";
 import { Readable } from "node:stream";
@@ -18,6 +18,13 @@ await mkdir(filesRoot, { recursive: true });
 const database = createDatabase(join(dataRoot, "cpd-manager.sqlite"));
 const port = Number(process.env.PORT || 8787);
 const maxUploadBytes = Number(process.env.MAX_UPLOAD_BYTES || 25 * 1024 * 1024); // 25 MB by default.
+const appPassword = process.env.CPD_PASSWORD || "";
+if (appPassword.length < 12) throw new Error("CPD_PASSWORD must be at least 12 characters");
+
+const sessionCookie = "cpd_session";
+const sessionLifetimeSeconds = 12 * 60 * 60;
+const sessions = new Map();
+const loginAttempts = new Map();
 
 const mimeTypes = {
   ".css": "text/css; charset=utf-8",
@@ -32,6 +39,58 @@ const mimeTypes = {
 function json(response, status, value) {
   response.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
   response.end(JSON.stringify(value));
+}
+
+function passwordMatches(candidate) {
+  const expected = createHash("sha256").update(appPassword).digest();
+  const supplied = createHash("sha256").update(String(candidate || "")).digest();
+  return timingSafeEqual(expected, supplied);
+}
+
+function cookies(request) {
+  return Object.fromEntries(String(request.headers.cookie || "").split(";").map((item) => item.trim()).filter(Boolean).map((item) => {
+    const separator = item.indexOf("=");
+    return separator < 0 ? [item, ""] : [item.slice(0, separator), decodeURIComponent(item.slice(separator + 1))];
+  }));
+}
+
+function sessionFor(request) {
+  const token = cookies(request)[sessionCookie];
+  const expiresAt = token ? sessions.get(token) : null;
+  if (!expiresAt || expiresAt <= Date.now()) {
+    if (token) sessions.delete(token);
+    return null;
+  }
+  return token;
+}
+
+function secureRequest(request) {
+  return request.headers["x-forwarded-proto"] === "https";
+}
+
+function setSessionCookie(response, request, token, maxAge = sessionLifetimeSeconds) {
+  const secure = secureRequest(request) ? "; Secure" : "";
+  response.setHeader("set-cookie", `${sessionCookie}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure}`);
+}
+
+function loginKey(request) {
+  return request.socket.remoteAddress || "unknown";
+}
+
+function blockedLogin(request) {
+  const item = loginAttempts.get(loginKey(request));
+  if (!item || item.resetAt <= Date.now()) {
+    loginAttempts.delete(loginKey(request));
+    return false;
+  }
+  return item.count >= 5;
+}
+
+function recordFailedLogin(request) {
+  const key = loginKey(request);
+  const current = loginAttempts.get(key);
+  const resetAt = current?.resetAt > Date.now() ? current.resetAt : Date.now() + 15 * 60 * 1000;
+  loginAttempts.set(key, { count: (current?.resetAt > Date.now() ? current.count : 0) + 1, resetAt });
 }
 
 function download(response, data, filename, type = "application/octet-stream") {
@@ -128,6 +187,27 @@ async function handleApi(request, response, url) {
   const path = url.pathname;
   if (!["GET", "HEAD", "OPTIONS"].includes(request.method)) assertSameOrigin(request);
   if (request.method === "GET" && path === "/api/health") return json(response, 200, { ok: true });
+  if (request.method === "GET" && path === "/api/auth/status") return json(response, 200, { authenticated: Boolean(sessionFor(request)) });
+  if (request.method === "POST" && path === "/api/auth/login") {
+    if (blockedLogin(request)) return json(response, 429, { error: "Too many attempts. Try again in 15 minutes." });
+    const values = await readJson(request);
+    if (!passwordMatches(values.password)) {
+      recordFailedLogin(request);
+      return json(response, 401, { error: "Incorrect password" });
+    }
+    loginAttempts.delete(loginKey(request));
+    const token = randomBytes(32).toString("base64url");
+    sessions.set(token, Date.now() + sessionLifetimeSeconds * 1000);
+    setSessionCookie(response, request, token);
+    return json(response, 200, { authenticated: true });
+  }
+  if (!sessionFor(request)) return json(response, 401, { error: "Unlock CPD Manager to continue" });
+  if (request.method === "POST" && path === "/api/auth/logout") {
+    const token = cookies(request)[sessionCookie];
+    if (token) sessions.delete(token);
+    setSessionCookie(response, request, "", 0);
+    return json(response, 200, { authenticated: false });
+  }
   if (request.method === "GET" && path === "/api/state") return json(response, 200, currentState());
   if (request.method === "PUT" && path === "/api/settings") {
     const values = await readJson(request);
