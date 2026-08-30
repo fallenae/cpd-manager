@@ -114,7 +114,7 @@ function activityCard(activity) {
 function activityDialog() {
   return `<dialog id="activity-dialog" class="editor-dialog"><form id="activity-form" method="dialog">
     <div class="dialog-heading"><div><p class="eyebrow">CPD logbook</p><h2 data-dialog-title>Log an activity</h2></div><button class="icon-button" data-action="close-dialog" type="button" aria-label="Close">×</button></div>
-    <input type="hidden" name="id" />
+    <input type="hidden" name="recordId" />
     <div class="form-grid two"><label>Date<input type="date" name="activityDate" required /></label><label>Hours<input type="number" name="hours" min="0.25" step="0.25" required /></label></div>
     <label>Activity name<input name="name" maxlength="180" required placeholder="e.g. CT dose optimisation workshop" /></label>
     <div class="form-grid two"><label>Source or provider<input name="provider" maxlength="180" placeholder="Provider, journal or facilitator" /></label><label>Location<input name="location" maxlength="140" placeholder="Online, workplace, venue…" /></label></div>
@@ -148,7 +148,7 @@ function reflectionCard(item) {
 function reflectionDialog() {
   return `<dialog id="reflection-dialog" class="editor-dialog"><form id="reflection-form" method="dialog">
     <div class="dialog-heading"><div><p class="eyebrow">Reflective statement</p><h2 data-dialog-title>New reflection</h2></div><button class="icon-button" data-action="close-dialog" type="button" aria-label="Close">×</button></div>
-    <input type="hidden" name="id" />
+    <input type="hidden" name="recordId" />
     <label>Linked CPD activity<select name="activityId" required><option value="">Choose an activity</option>${state.activities.map((activity) => `<option value="${activity.id}">${escapeHtml(activity.name)} — ${formatDate(activity.activityDate)}</option>`).join("")}</select></label>
     <label>Audit category<select name="category" required>${state.requirements.reflectionCategories.map((category) => `<option value="${category}">${escapeHtml(state.reflectionLabels[category])}</option>`).join("")}</select></label>
     <label>What did I do?<textarea name="did" rows="3" required></textarea></label>
@@ -236,7 +236,7 @@ function openActivityDialog(id) {
   const form = dialog.querySelector("form");
   const activity = id ? findActivity(id) : null;
   form.reset();
-  form.elements.id.value = activity?.id || "";
+  form.elements.recordId.value = activity?.id || "";
   form.elements.activityDate.value = activity?.activityDate || today();
   form.elements.name.value = activity?.name || "";
   form.elements.hours.value = activity?.hours || "";
@@ -253,7 +253,7 @@ function openReflectionDialog(id) {
   const form = dialog.querySelector("form");
   const reflection = id ? findReflection(id) : null;
   form.reset();
-  form.elements.id.value = reflection?.id || "";
+  form.elements.recordId.value = reflection?.id || "";
   form.elements.activityId.value = reflection?.activityId || "";
   form.elements.category.value = reflection?.category || "ethical";
   form.elements.did.value = reflection?.did || "";
@@ -293,24 +293,25 @@ app.addEventListener("click", async (event) => {
 app.addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.target;
+  const formId = form.getAttribute("id");
   try {
-    if (form.id === "activity-form") {
+    if (formId === "activity-form") {
       const data = new FormData(form);
-      const id = data.get("id");
+      const id = data.get("recordId");
       const payload = Object.fromEntries(["activityDate", "name", "hours", "provider", "location", "type", "summary"].map((key) => [key, data.get(key)]));
       const activity = await api(id ? `/api/activities/${id}` : "/api/activities", { method: id ? "PUT" : "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
       const evidence = data.get("evidence");
       if (evidence?.size) { const upload = new FormData(); upload.append("file", evidence); await api(`/api/activities/${activity.id}/attachments`, { method: "POST", body: upload }); }
       form.closest("dialog").close(); await refresh(id ? "Activity updated" : "Activity logged");
     }
-    if (form.id === "reflection-form") {
-      const data = new FormData(form); const id = data.get("id");
+    if (formId === "reflection-form") {
+      const data = new FormData(form); const id = data.get("recordId");
       const payload = Object.fromEntries(["activityId", "category", "did", "learned", "impact", "furtherLearning"].map((key) => [key, data.get(key)]));
       payload.auditSelected = data.get("auditSelected") === "on";
       await api(id ? `/api/reflections/${id}` : "/api/reflections", { method: id ? "PUT" : "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
       form.closest("dialog").close(); await refresh(id ? "Reflection updated" : "Reflection saved");
     }
-    if (form.id === "settings-form") {
+    if (formId === "settings-form") {
       const payload = Object.fromEntries(new FormData(form));
       await api("/api/settings", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) }); await refresh("Details saved");
     }
