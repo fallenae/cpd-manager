@@ -15,3 +15,22 @@ test("form controls do not shadow the form identifier used by delegated submissi
   assert.match(source, /const formId = form\.getAttribute\("id"\)/);
   assert.doesNotMatch(source, /if \(form\.id ===/);
 });
+
+test("non-admin users are returned home from a remembered admin route", async () => {
+  const source = await readFile(new URL("../public/app.js", import.meta.url), "utf8");
+
+  assert.match(source, /location\.hash === "#admin" && state\.user\.role !== "admin"/);
+  assert.match(source, /history\.replaceState\(null, "", "#home"\)/);
+});
+
+test("empty attachment storage is displayed as zero bytes", async () => {
+  const source = await readFile(new URL("../public/app.js", import.meta.url), "utf8");
+
+  assert.match(source, /bytes === 0 \? "0 B"/);
+});
+
+test("the app header identifies the signed-in account without duplicating the logbook name", async () => {
+  const source = await readFile(new URL("../public/app.js", import.meta.url), "utf8");
+
+  assert.ok(source.includes('${escapeHtml(state.user.displayName)} · @${escapeHtml(state.user.username)}'));
+});

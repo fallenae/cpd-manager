@@ -21,15 +21,30 @@ button, input, textarea, select { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 
 .app-shell { min-height: 100vh; padding-bottom: 92px; }
-.topbar { max-width: 1180px; margin: 0 auto; padding: 24px 28px; display: flex; align-items: center; justify-content: space-between; }
+.topbar { position: relative; z-index: 20; max-width: 1180px; margin: 0 auto; padding: 24px 28px; display: flex; align-items: center; justify-content: space-between; }
 .brand { display: inline-flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; }
 .brand-mark { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 14px 14px 14px 5px; background: var(--deep-teal); color: white; font-family: Georgia, serif; font-size: 22px; }
 .brand strong, .brand small { display: block; }
 .brand strong { font-size: 15px; letter-spacing: .01em; }
 .brand small { color: var(--muted); margin-top: 2px; font-size: 11px; }
-.cycle-pill { border: 1px solid #b9cbc7; background: rgba(255,255,255,.55); border-radius: 999px; padding: 9px 14px; font-weight: 750; font-size: 12px; letter-spacing: .07em; }
+.cycle-pill { display: inline-flex; align-items: center; gap: 7px; border: 1px solid #b9cbc7; color: var(--ink); background: rgba(255,255,255,.55); border-radius: 999px; padding: 9px 14px; cursor: pointer; font-weight: 750; font-size: 12px; letter-spacing: .07em; }
+.cycle-pill:hover, .cycle-pill[aria-expanded="true"] { border-color: var(--teal); background: white; }
+.cycle-pill span { color: var(--teal); font-size: 13px; }
 .topbar-actions { display: flex; align-items: center; gap: 8px; }
 .lock-button { padding: 9px 13px; border: 1px solid #b9cbc7; border-radius: 999px; color: var(--deep-teal); background: rgba(255,255,255,.55); cursor: pointer; font-size: 11px; font-weight: 800; }
+.biennium-picker { position: relative; }
+.biennium-menu { position: absolute; right: 0; top: calc(100% + 9px); width: 226px; max-height: min(410px, calc(100vh - 100px)); overflow-y: auto; padding: 8px; border: 1px solid #bdcbc7; border-radius: 18px 18px 18px 7px; background: var(--surface); box-shadow: 0 20px 55px rgba(18,60,63,.20); }
+.biennium-menu[hidden] { display: none; }
+.biennium-menu > p { margin: 4px 9px 7px; color: var(--muted); text-transform: uppercase; letter-spacing: .13em; font-size: 9px; font-weight: 850; }
+.biennium-menu button { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 10px 11px; border: 0; border-radius: 10px; color: var(--ink); background: transparent; cursor: pointer; text-align: left; font-size: 12px; font-weight: 750; }
+.biennium-menu button:hover, .biennium-menu button:focus-visible { background: var(--pale-teal); outline: none; }
+.biennium-menu button.selected { color: white; background: var(--deep-teal); }
+.biennium-menu small { color: var(--teal); font-size: 9px; font-weight: 850; text-transform: uppercase; letter-spacing: .08em; }
+.biennium-menu button.selected small { color: #bce0da; }
+.past-biennium-notice { display: flex; align-items: center; gap: 10px; margin: -14px 0 28px; padding: 10px 13px; border: 1px solid #d5c6a8; border-radius: 13px; color: #70552b; background: #f2e8d5; font-size: 11px; }
+.past-biennium-notice span { font-weight: 750; }
+.past-biennium-notice strong { font-family: Georgia, serif; font-size: 15px; font-weight: 500; }
+.past-biennium-notice button { margin-left: auto; padding: 6px 9px; border: 0; border-radius: 8px; color: #70552b; background: rgba(255,255,255,.6); cursor: pointer; font-size: 10px; font-weight: 800; }
 
 .login-page { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
 .login-card { width: min(460px, 100%); padding: clamp(28px, 6vw, 48px); border: 1px solid rgba(18,60,63,.12); border-radius: 32px 32px 32px 10px; background: rgba(255,253,248,.92); box-shadow: var(--shadow); }
@@ -224,6 +239,31 @@ legend { margin-bottom: 7px; font-size: 12px; font-weight: 800; }
 .backup-note { padding: 20px; border: 1px solid #d5c6a8; border-radius: 18px 18px 18px 7px; background: #f2e8d5; }
 .backup-note h2 { margin: 0 0 7px; font: 500 23px Georgia, serif; }
 .backup-note p:not(.eyebrow) { margin: 0 0 14px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.password-card { display: grid; gap: 12px; padding: 20px; border: 1px solid #ccd7d3; border-radius: 18px 18px 18px 7px; background: #f8faf7; }
+.password-card h2 { margin: 0 0 4px; font: 500 23px Georgia, serif; }
+.password-card label { display: grid; gap: 6px; font-size: 11px; font-weight: 800; }
+.password-card input { width: 100%; padding: 10px 11px; border: 1px solid #c7d2ce; border-radius: 10px; background: white; }
+.password-card .small-button { justify-self: start; }
+
+.admin-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 22px; }
+.admin-summary article { padding: 18px; border: 1px solid #ccd7d3; border-radius: 17px 17px 17px 6px; background: rgba(255,253,248,.84); }
+.admin-summary small, .admin-summary strong { display: block; }
+.admin-summary small { color: var(--muted); text-transform: uppercase; letter-spacing: .11em; font-size: 9px; font-weight: 850; }
+.admin-summary strong { margin-top: 7px; font: 500 25px Georgia, serif; }
+.user-list { display: grid; gap: 12px; }
+.user-card { display: grid; grid-template-columns: minmax(210px, .8fr) minmax(420px, 1.5fr) auto; gap: 22px; align-items: center; padding: 20px; border: 1px solid #ccd7d3; border-radius: 22px 22px 22px 8px; background: rgba(255,253,248,.88); }
+.user-card.disabled { opacity: .68; background: #eeeae3; }
+.user-identity { display: flex; align-items: center; gap: 12px; }
+.user-identity > span { display: grid; place-items: center; width: 43px; height: 43px; flex: none; border-radius: 14px 14px 14px 5px; color: white; background: var(--deep-teal); font: 500 20px Georgia, serif; }
+.user-identity h2 { margin: 0; font: 500 20px Georgia, serif; }
+.user-identity p { margin: 4px 0 0; color: var(--muted); font-size: 10px; }
+.user-card dl { display: grid; grid-template-columns: 1.5fr repeat(4, 1fr); gap: 12px; margin: 0; }
+.user-card dl div { min-width: 0; }
+.user-card dt { color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-size: 8px; font-weight: 850; }
+.user-card dd { overflow: hidden; margin: 4px 0 0; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 750; }
+.user-actions { display: flex; justify-content: flex-end; gap: 7px; }
+.account-you { padding: 7px 9px; border-radius: 9px; color: var(--teal); background: var(--pale-teal); font-size: 9px; font-weight: 850; text-transform: uppercase; }
+.dialog-heading [data-reset-user-name] { margin: 7px 0 0; color: var(--muted); font-size: 11px; }
 .toast { position: fixed; z-index: 100; left: 50%; top: 18px; transform: translate(-50%, -20px); padding: 11px 16px; border-radius: 999px; color: white; background: var(--deep-teal); box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: .2s ease; font-size: 12px; font-weight: 800; }
 .toast.visible { transform: translate(-50%, 0); opacity: 1; }
 .toast.error { background: #9a4c42; }
@@ -238,7 +278,12 @@ legend { margin-bottom: 7px; font-size: 12px; font-weight: 800; }
 
 @media (max-width: 780px) {
   .topbar { padding: 16px 18px; }
+  .cycle-pill { padding: 8px 10px; font-size: 10px; }
+  .lock-button { padding: 8px 10px; }
+  .biennium-menu { width: min(240px, calc(100vw - 36px)); }
   main { padding: 24px 18px 26px; }
+  .past-biennium-notice { align-items: flex-start; flex-wrap: wrap; margin-top: -7px; }
+  .past-biennium-notice button { margin-left: 0; }
   .welcome-grid { grid-template-columns: 1fr; min-height: 0; }
   h1 { font-size: clamp(41px, 13vw, 58px); }
   .progress-card { grid-template-columns: 112px 1fr; padding: 22px; border-radius: 22px 22px 22px 8px; }
@@ -272,6 +317,11 @@ legend { margin-bottom: 7px; font-size: 12px; font-weight: 800; }
   .evidence-row .mini-check { grid-column: 2 / -1; }
   .pack-download { align-items: stretch; flex-direction: column; }
   .settings-card { grid-template-columns: 1fr; gap: 25px; padding: 22px; }
+  .admin-summary { grid-template-columns: 1fr 1fr; }
+  .user-card { grid-template-columns: 1fr; gap: 15px; }
+  .user-card dl { grid-template-columns: 1.5fr repeat(2, 1fr); }
+  .user-actions { justify-content: flex-start; }
+  .bottom-nav a { min-width: 0; flex: 1; padding-inline: 5px; }
 }
 
 @media (prefers-reduced-motion: no-preference) {

@@ -8,7 +8,9 @@ services:
       - "8787:8787"
     environment:
       DATA_DIR: /data
-      CPD_PASSWORD: ${CPD_PASSWORD:?Set CPD_PASSWORD in .env}
+      CPD_ADMIN_USERNAME: ${CPD_ADMIN_USERNAME:-admin}
+      CPD_ADMIN_PASSWORD: ${CPD_ADMIN_PASSWORD:?Set CPD_ADMIN_PASSWORD in .env}
+      CPD_ADMIN_DISPLAY_NAME: ${CPD_ADMIN_DISPLAY_NAME:-Administrator}
     volumes:
       - ./data:/data
     healthcheck:
